@@ -1,4 +1,3 @@
-```typescript
 import { useEffect } from 'react';
 import { registerArtifact } from '@/lib/registerArtifact';
 
@@ -20,6 +19,6 @@ export default function Home() {
     </div>
   );
 }
-```
+
 
 ---
