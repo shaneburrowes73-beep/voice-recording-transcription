@@ -1,5 +1,3 @@
-Location: `lib/registerArtifact.ts`
-```typescript
 interface ArtifactConfig {
   name: string;
   type: string;
@@ -39,4 +37,3 @@ export async function registerArtifact(config: ArtifactConfig) {
     return null;
   }
 }
-```
