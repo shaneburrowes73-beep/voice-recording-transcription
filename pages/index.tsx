@@ -4,20 +4,25 @@ import { registerArtifact } from '@/lib/registerArtifact';
 export default function Home() {
   useEffect(() => {
     registerArtifact({
-      name: 'voice-recording-transcription'
+      name: 'Social Content Pipeline',
       type: 'application',
       url: typeof window !== 'undefined' ? window.location.origin : '',
-      description: 'Your artifact description here',
+      description: 'AI-powered tool to draft and schedule social media content',
+      metadata: {
+        version: '1.0.0',
+        status: 'beta',
+      },
     });
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-4xl font-bold mb-4">Voice-recording-transcription</h1>
-      <p className="text-lg text-gray-600 mb-8">Beta Testing Program</p>
-      <a href="/feedback" className="px-6 py-3 bg-blue-600 text-white rounded">Submit Feedback</a>
+    <div style={{ padding: '40px' }}>
+      <h1>Social Content Pipeline</h1>
+      <p>Draft and schedule social media content in minutes using AI</p>
+      <div style={{ marginTop: '20px' }}>
+        <a href="/feedback" style={{ marginRight: '10px' }}>Submit Feedback</a>
+        <a href="/feedback-status">View Status</a>
+      </div>
     </div>
   );
 }
-
-
