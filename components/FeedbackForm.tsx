@@ -23,11 +23,6 @@ export interface FeedbackFormProps {
   questions: [SmartQuestion, SmartQuestion, SmartQuestion];
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function FeedbackForm({ artifactName, tableName, questions }: FeedbackFormProps) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [email, setEmail] = useState('');
@@ -50,6 +45,12 @@ export default function FeedbackForm({ artifactName, tableName, questions }: Fee
     setError(null);
 
     try {
+      // Lazy-instantiate supabase client at submit time (not module load)
+      // so that build-time pre-rendering doesn't fail when env vars aren't yet injected.
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
       // Upsert tester (RLS-safe: avoids SELECT which requires auth)
       const { data: tester, error: testerErr } = await supabase
         .from('tester_users')
