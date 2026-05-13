@@ -1,12 +1,58 @@
-```
-node_modules/
-.next/
-.env.local
-.env
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
 dist/
-.DS_Store
-*.log
-.vercel/
-.idea/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
 .vscode/
-```
+.idea/
+*.swp
+*.swo
+*~
+
+# Data (gitignored - too large)
+data/barbadian_audio/**/*.wav
+data/barbadian_audio/**/*.mp3
+data/feature_vectors/
+data/models/**/*.pt
+data/models/**/*.pth
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+*.csv
+!requirements.txt
+config.json
+*.pyc
