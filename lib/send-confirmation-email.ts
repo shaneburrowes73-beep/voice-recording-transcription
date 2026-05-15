@@ -1,26 +1,14 @@
 import nodemailer from 'nodemailer';
 
-let transporter: nodemailer.Transporter | null = null;
-
-function getTransporter() {
-  if (!transporter) {
-    const user = process.env.GMAIL_SMTP_USER;
-    const pass = process.env.GMAIL_SMTP_APP_PASSWORD;
-
-    if (!user || !pass) {
-      throw new Error('Missing GMAIL_SMTP_USER or GMAIL_SMTP_APP_PASSWORD');
-    }
-
-    transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user, pass },
-    });
-  }
-
-  return transporter;
-}
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.GMAIL_SMTP_USER || '',
+    pass: process.env.GMAIL_SMTP_APP_PASSWORD || '',
+  },
+});
 
 export async function sendConfirmationEmail(opts: {
   toEmail: string;
@@ -30,11 +18,7 @@ export async function sendConfirmationEmail(opts: {
 }) {
   const { toEmail, toName, submissionId, numFiles } = opts;
   const notifyEmail = process.env.SUBMISSION_NOTIFY_EMAIL || 'aisolutions@aisolutionsnet.net';
-  const gmailUser = process.env.GMAIL_SMTP_USER;
-
-  if (!gmailUser) {
-    throw new Error('Missing GMAIL_SMTP_USER');
-  }
+  const gmailUser = process.env.GMAIL_SMTP_USER || '';
 
   const subject = 'Voice Recording & Transcription — Submission Received';
   const text = `Hi ${toName},
@@ -52,8 +36,7 @@ If you have questions, just reply to this email.
 — AI Solutions team
 `;
 
-  const smtp = getTransporter();
-  await smtp.sendMail({
+  await transporter.sendMail({
     from: `"AI Solutions" <${gmailUser}>`,
     to: toEmail,
     cc: notifyEmail,
