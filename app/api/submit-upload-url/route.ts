@@ -29,12 +29,28 @@ export async function POST(req: Request) {
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
     const objectPath = `${randomUUID()}/${Date.now()}-${safeName}`;
 
+    // Debug: Check if Supabase client is properly initialized
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+      console.error('[submit-upload-url] Missing Supabase credentials', { urlExists: !!url, keyExists: !!key });
+      return NextResponse.json({
+        error: 'Server configuration error: Missing Supabase credentials',
+        debug: { urlExists: !!url, keyExists: !!key }
+      }, { status: 500 });
+    }
+
     const { data, error } = await supabaseAdmin.storage
       .from('voice-submissions')
       .createSignedUploadUrl(objectPath);
 
     if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Failed to create signed URL' }, { status: 500 });
+      console.error('[submit-upload-url] Supabase error:', error);
+      return NextResponse.json({
+        error: error?.message || 'Failed to create signed URL',
+        debug: error
+      }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -43,6 +59,10 @@ export async function POST(req: Request) {
       objectPath: data.path,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 });
+    console.error('[submit-upload-url] Exception:', err);
+    return NextResponse.json({
+      error: err?.message || 'Unknown error',
+      debug: err?.toString()
+    }, { status: 500 });
   }
 }
