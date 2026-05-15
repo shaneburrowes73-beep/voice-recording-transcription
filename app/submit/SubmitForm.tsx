@@ -49,24 +49,17 @@ export function SubmitForm() {
     setSlots(prev => prev.map((s, i) => (i === slotIndex ? { ...emptySlot(), file, status: 'uploading', progress: 0 } : s)));
 
     try {
-      const signedRes = await fetch('/api/submit-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileSize: file.size, mimeType: file.type || 'audio/mpeg' }),
-      });
+      // Generate unique path on client side
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+      const objectPath = `${crypto.randomUUID()}/${Date.now()}-${safeName}`;
 
-      if (!signedRes.ok) {
-        const err = await signedRes.json().catch(() => ({}));
-        throw new Error(err?.error || 'Failed to get upload URL');
-      }
-
-      const { token, objectPath } = await signedRes.json();
-
-      const { error: uploadErr } = await supabaseBrowser.storage
+      // Upload directly to Supabase Storage
+      const { data, error: uploadErr } = await supabaseBrowser.storage
         .from('voice-submissions')
-        .uploadToSignedUrl(objectPath, token, file, { contentType: file.type });
+        .upload(objectPath, file, { contentType: file.type || 'audio/mpeg' });
 
       if (uploadErr) throw new Error(uploadErr.message);
+      if (!data) throw new Error('Upload returned no data');
 
       const url = `voice-submissions/${objectPath}`;
 
