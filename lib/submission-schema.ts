@@ -31,7 +31,7 @@ export const submissionSchema = z.object({
   contentType: z.string().max(100).optional().or(z.literal('')),
   audioDurationSeconds: z.coerce.number().int().min(0).max(36000).optional(),
   topicsCovered: z.string().max(2000).optional().or(z.literal('')),
-  audioFileUrls: z.array(z.string().url()).min(1, 'At least one audio file required').max(MAX_FILES_PER_SUBMISSION),
+  audioFileUrls: z.array(z.string().min(1)).min(1, 'At least one audio file required').max(MAX_FILES_PER_SUBMISSION),
   willingToProvideAdditionalContent: z.string().max(20).optional().or(z.literal('')),
 
   consentGiven: z.literal(true, { errorMap: () => ({ message: 'Consent is required to submit' }) }),
