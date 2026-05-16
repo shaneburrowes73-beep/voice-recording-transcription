@@ -17,7 +17,7 @@ export async function sendConfirmationEmail(opts: {
   numFiles: number;
 }) {
   const { toEmail, toName, submissionId, numFiles } = opts;
-  const notifyEmail = process.env.SUBMISSION_NOTIFY_EMAIL || 'aisolutions@aisolutionsnet.net';
+  const notifyEmail = process.env.SUBMISSION_NOTIFY_EMAIL || 'alerts@aisolutionsnet.net';
   const gmailUser = process.env.GMAIL_SMTP_USER || '';
 
   const subject = 'Voice Recording & Transcription — Submission Received';
