@@ -136,9 +136,9 @@ export function SubmitForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: 24, maxWidth: 720, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <h1 style={{ marginTop: 0 }}>Voice Recording & Transcription — Audio Submission</h1>
-      <p style={{ color: '#6b7280' }}>
+    <form onSubmit={handleSubmit} style={{ fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+      <h1 style={{ marginTop: 0, marginBottom: 12, color: '#111827', fontSize: 28, fontWeight: 700 }}>Audio Submission</h1>
+      <p style={{ color: '#6b7280', marginBottom: 28, lineHeight: 1.6 }}>
         Thank you for helping the Voice Recording & Transcription project. Please complete the form below and
         upload your audio file(s). All fields marked * are required. You can submit as many times as you like.
       </p>
@@ -174,8 +174,8 @@ export function SubmitForm() {
 
       <button
         type="submit"
-        disabled={submitting || slots.some(s => s.status === 'uploading')}
-        style={{ padding: '12px 20px', background: submitting ? '#9ca3af' : '#1f2937', color: '#fff', border: 'none', borderRadius: 4, cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 500, fontSize: 16 }}
+        disabled={submitting || slots.some(s => s.status === 'uploading') || !slots.some(s => s.status === 'done')}
+        style={{ padding: '12px 20px', background: submitting || !slots.some(s => s.status === 'done') ? '#9ca3af' : '#1f2937', color: '#fff', border: 'none', borderRadius: 4, cursor: submitting || !slots.some(s => s.status === 'done') ? 'not-allowed' : 'pointer', fontWeight: 500, fontSize: 16 }}
       >
         {submitting ? 'Submitting…' : 'Submit'}
       </button>
