@@ -21,7 +21,7 @@ const ADMIN_ROLES = ['Administrator', 'Supervisor', 'Inspector'];
 const isAdmin = (role: string) => ADMIN_ROLES.includes(role);
 
 function AppInner() {
-  const { user, org, loading, logout } = useAuth();
+  const { user, org, loading, logout } = useAuth()!;
   const [activeTab, setTab] = useState('voice');
   const brand = getBranding(org);
   const P=brand.primary; const A=brand.accent;
