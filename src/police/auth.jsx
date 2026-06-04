@@ -1,59 +1,111 @@
 'use client';
+/**
+ * auth.jsx — Police app authentication via Supabase Auth.
+ *
+ * Replaces the previous custom JWT / Neon implementation.
+ * User metadata (fullName, badgeNo, role, orgSlug) is stored in
+ * Supabase Auth's user_metadata at sign-up time.
+ *
+ * After login, the org record is fetched from the `organisations` table
+ * using the orgSlug stored in user_metadata.
+ */
 import { createContext, useContext, useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 const AuthCtx = createContext(null);
-const TOKEN_KEY = 'vt_token';
+
+async function fetchOrg(orgSlug) {
+  if (!orgSlug) return null;
+  const { data } = await supabase
+    .from('organisations')
+    .select('*')
+    .eq('slug', orgSlug)
+    .single();
+  return data || null;
+}
+
+function userFromSupabase(sbUser) {
+  if (!sbUser) return null;
+  const m = sbUser.user_metadata || {};
+  return {
+    id:       sbUser.id,
+    email:    sbUser.email,
+    fullName: m.fullName  || m.full_name  || sbUser.email,
+    badgeNo:  m.badgeNo   || m.badge_no   || '',
+    role:     m.role      || 'Field Officer',
+    orgSlug:  m.orgSlug   || 'barbados-police',
+  };
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
-  const [org, setOrg]         = useState(null);
+  const [user,    setUser]    = useState(null);
+  const [org,     setOrg]     = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const tk = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
-    if (tk) verifyToken(tk); else setLoading(false);
+    // Restore session on mount
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const u = userFromSupabase(session.user);
+        const o = await fetchOrg(u.orgSlug);
+        setUser(u); setOrg(o);
+      }
+      setLoading(false);
+    });
+
+    // Keep state in sync with Supabase session changes (tab focus, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const u = userFromSupabase(session.user);
+          const o = await fetchOrg(u.orgSlug);
+          setUser(u); setOrg(o);
+        } else {
+          setUser(null); setOrg(null);
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
   }, []);
 
-  const verifyToken = async tk => {
-    try {
-      const r = await fetch('/api/police/verify', { method:'POST', headers:{ Authorization:'Bearer '+tk } });
-      if (r.ok) {
-        const d = await r.json();
-        setUser(d.user); setOrg(d.org);
-        localStorage.setItem(TOKEN_KEY, tk);
-      } else {
-        localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY);
-      }
-    } catch {}
-    setLoading(false);
-  };
-
   const login = async (email, password) => {
-    const r = await fetch('/api/police/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email, password }) });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || 'Login failed');
-    localStorage.setItem(TOKEN_KEY, d.token);
-    setUser(d.user); setOrg(d.org);
-    return d;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    const u = userFromSupabase(data.user);
+    const o = await fetchOrg(u.orgSlug);
+    setUser(u); setOrg(o);
+    return { user: u, org: o };
   };
 
   const logout = async () => {
-    const tk = localStorage.getItem(TOKEN_KEY);
-    if (tk) await fetch('/api/police/logout', { method:'POST', headers:{ Authorization:'Bearer '+tk } }).catch(() => {});
-    localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY);
+    await supabase.auth.signOut();
     setUser(null); setOrg(null);
   };
 
-  const register = async data => {
-    const r = await fetch('/api/police/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error || 'Registration failed');
-    return d;
+  const register = async ({ fullName, badgeNo, email, password, role, orgSlug = 'barbados-police' }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { fullName, badgeNo, role, orgSlug },
+        // emailRedirectTo not needed for police intranet — disable email confirmation
+        // in Supabase dashboard: Auth → Settings → Disable email confirmations
+      },
+    });
+    if (error) throw new Error(error.message);
+    return data;
   };
 
-  const getToken = () => localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
-
-  return <AuthCtx.Provider value={{ user, org, loading, login, logout, register, getToken }}>{children}</AuthCtx.Provider>;
+  return (
+    <AuthCtx.Provider value={{ user, org, loading, login, logout, register }}>
+      {children}
+    </AuthCtx.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthCtx);
