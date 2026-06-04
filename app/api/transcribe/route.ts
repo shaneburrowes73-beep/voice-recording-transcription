@@ -29,10 +29,6 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Vercel serverless body size limit — increase for audio files up to ~10MB
-export const config = {
-  api: { bodyParser: { sizeLimit: '25mb' } },
-};
 
 async function getAudioBuffer(req: Request): Promise<{ buffer: Buffer; filename: string; mimeType: string } | null> {
   const contentType = req.headers.get('content-type') || '';
