@@ -6,6 +6,79 @@ import { sendConfirmationEmail } from '@/lib/send-confirmation-email';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+async function triggerTranscription(submissionId: string, audioFileUrls: string[]): Promise<void> {
+  try {
+    await supabaseAdmin
+      .from('voice_recording_transcription_submissions')
+      .update({ transcript_status: 'processing' })
+      .eq('id', submissionId);
+
+    const transcribeSecret = process.env.TRANSCRIBE_API_SECRET || '';
+    const transcriptParts: string[] = [];
+    const correctedParts: string[] = [];
+
+    for (const storagePath of audioFileUrls) {
+      const { data: signedData, error: signErr } = await supabaseAdmin
+        .storage
+        .from('voice-submissions')
+        .createSignedUrl(storagePath.replace('voice-submissions/', ''), 300);
+
+      if (signErr || !signedData?.signedUrl) {
+        console.error('Signed URL error for', storagePath, signErr);
+        transcriptParts.push(`[Could not access file: ${storagePath}]`);
+        continue;
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voice-recording-transcription.vercel.app';
+      const transcribeRes = await fetch(`${baseUrl}/api/transcribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(transcribeSecret ? { Authorization: `Bearer ${transcribeSecret}` } : {}),
+        },
+        body: JSON.stringify({ storage_url: signedData.signedUrl }),
+      });
+
+      if (!transcribeRes.ok) {
+        const errText = await transcribeRes.text();
+        console.error('Transcribe failed for', storagePath, errText);
+        transcriptParts.push(`[Transcription failed for file ${storagePath}]`);
+        continue;
+      }
+
+      const result = await transcribeRes.json() as {
+        transcript: string;
+        corrected_transcript: string;
+        corrections_applied: number;
+      };
+
+      transcriptParts.push(result.transcript || '');
+      correctedParts.push(result.corrected_transcript || result.transcript || '');
+    }
+
+    const rawTranscript = transcriptParts.join('\n\n---\n\n');
+    const correctedTranscript = correctedParts.join('\n\n---\n\n');
+
+    await supabaseAdmin
+      .from('voice_recording_transcription_submissions')
+      .update({
+        raw_transcript: rawTranscript,
+        corrected_transcript: correctedTranscript,
+        transcript_edited: correctedTranscript,
+        transcript_status: 'done',
+        transcribed_at: new Date().toISOString(),
+      })
+      .eq('id', submissionId);
+
+  } catch (err: any) {
+    console.error('triggerTranscription error:', err);
+    await supabaseAdmin
+      .from('voice_recording_transcription_submissions')
+      .update({ transcript_status: 'failed' })
+      .eq('id', submissionId);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -15,7 +88,6 @@ export async function POST(req: Request) {
     }
 
     const p = parsed.data;
-
     const userAgent = req.headers.get('user-agent') || null;
     const ipCountry = req.headers.get('x-vercel-ip-country') || null;
 
@@ -42,6 +114,7 @@ export async function POST(req: Request) {
         additional_notes: p.additionalNotes || null,
         user_agent: userAgent,
         ip_country: ipCountry,
+        transcript_status: 'pending',
       } as any)
       .select('id')
       .single();
@@ -52,7 +125,10 @@ export async function POST(req: Request) {
 
     const submissionId = (data as any).id;
 
-    // Send confirmation email — but don't fail the submission if email fails
+    triggerTranscription(submissionId, p.audioFileUrls).catch(err =>
+      console.error('Background transcription error:', err)
+    );
+
     try {
       await sendConfirmationEmail({
         toEmail: p.emailAddress,
