@@ -101,7 +101,7 @@ export async function POST(req: Request) {
 
     // Call OpenAI Whisper
     const formData = new FormData();
-    const blob = new Blob([audio.buffer], { type: audio.mimeType });
+    const blob = new Blob([new Uint8Array(audio.buffer)], { type: audio.mimeType });
     formData.append('file', blob, audio.filename);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
