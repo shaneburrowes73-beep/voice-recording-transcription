@@ -12,9 +12,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
+// Dedicated project for the client platform — separate from the AI Solutions
+// portfolio project (NEXT_PUBLIC_SUPABASE_URL) which holds corpus/feedback data.
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_CLIENT_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_CLIENT_SUPABASE_ANON_KEY
 );
 
 const AuthCtx = createContext(null);

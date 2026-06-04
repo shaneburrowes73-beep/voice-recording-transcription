@@ -5,8 +5,8 @@ import { useAuth } from './auth.jsx';
 import { getBranding } from './branding.js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_CLIENT_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_CLIENT_SUPABASE_ANON_KEY
 );
 
 const strength = pw => { let s=0; if(pw.length>=8)s++; if(/[A-Z]/.test(pw))s++; if(/[a-z]/.test(pw))s++; if(/\d/.test(pw))s++; if(/[^a-zA-Z\d]/.test(pw))s++; return s; };
