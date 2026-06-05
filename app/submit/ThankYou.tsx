@@ -62,7 +62,7 @@ export function ThankYou({ submissionId, onSubmitAnother }: { submissionId: stri
         if (data.transcript_status === 'done' || data.transcript_status === 'failed') {
           clearInterval(pollRef.current!);
         }
-      } catch { /* keep polling */ }
+     } catch (_e) { /* keep polling */ }
     };
 
     poll();
