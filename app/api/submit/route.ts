@@ -136,8 +136,8 @@ export async function POST(req: Request) {
         submissionId,
         numFiles: p.audioFileUrls.length,
       });
-    } catch (emailErr) {
-      console.error('Email send failed (submission still saved):', emailErr);
+  } catch (emailErr: any) {
+      console.error('Email send failed (submission still saved):', emailErr?.message || emailErr);
     }
 
     return NextResponse.json({ submissionId });
