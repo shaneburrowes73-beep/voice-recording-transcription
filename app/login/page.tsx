@@ -152,6 +152,15 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Forgot password link — login mode only */}
+            {mode === 'login' && (
+              <div style={{ textAlign: 'right', marginBottom: 20, marginTop: -12 }}>
+                <a href="/reset-password" style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none', fontWeight: 500 }}>
+                  Forgot password?
+                </a>
+              </div>
+            )}
+
             {/* Password strength */}
             {mode === 'register' && pw && (
               <div style={{ marginBottom: 20 }}>
