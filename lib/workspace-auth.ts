@@ -107,3 +107,67 @@ export async function signUp(opts: {
 export async function signOut() {
   await getWorkspaceClient().auth.signOut();
 }
+
+// ─── Team management helpers ──────────────────────────────────────────────────
+
+export interface TeamMember {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  status: string;
+  created_at: string;
+  last_active: string | null;
+}
+
+export async function getTeamMembers(orgId: string): Promise<TeamMember[]> {
+  const sb = getWorkspaceClient();
+  // Join user_profiles with auth.users via RPC (service role needed for email)
+  // We expose email via a safe view — fall back to profile data only
+  const { data } = await sb
+    .from('user_profiles')
+    .select('id, full_name, role, status, created_at, last_active')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true });
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    email: '',            // email not exposed via RLS — shown as placeholder
+    full_name: p.full_name,
+    role: p.role,
+    status: p.status,
+    created_at: p.created_at,
+    last_active: p.last_active,
+  }));
+}
+
+export async function updateMemberRole(memberId: string, newRole: string): Promise<void> {
+  const sb = getWorkspaceClient();
+  const { error } = await sb
+    .from('user_profiles')
+    .update({ role: newRole })
+    .eq('id', memberId);
+  if (error) throw new Error(error.message);
+}
+
+export async function getOrgStats(orgId: string) {
+  const sb = getWorkspaceClient();
+  const [transcripts, members] = await Promise.all([
+    sb.from('transcripts').select('status').eq('org_id', orgId),
+    sb.from('user_profiles').select('id').eq('org_id', orgId),
+  ]);
+  const rows = transcripts.data || [];
+  return {
+    total:    rows.length,
+    pending:  rows.filter(r => r.status === 'Pending').length,
+    approved: rows.filter(r => r.status === 'Approved').length,
+    rejected: rows.filter(r => r.status === 'Rejected').length,
+    saved:    rows.filter(r => r.status === 'Saved').length,
+    members:  (members.data || []).length,
+  };
+}
+
+export async function generateInviteLink(orgSlug: string): Promise<string> {
+  // Returns a pre-filled registration link — no magic-link email needed for MVP
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://voice-recording-transcription.vercel.app';
+  return `${base}/login?org=${orgSlug}&invite=1`;
+}
